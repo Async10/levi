@@ -1,9 +1,9 @@
 # LEVI
 
 LEVI or Lesser VI is a VI-like text editor for the terminal that I develop for
-for fun. I started the project to get a better understanding of how text editors work.
-My goal is to bring LEVI to a point where users will be able to comfortably
-navigate and edit relatively large text files in it.
+fun. I started the project to get a better understanding of how text editors
+work.  My goal is to bring LEVI to a point where users will be able to
+comfortably navigate and edit relatively large text files in it.
 
 ## Requirements
 
@@ -13,7 +13,8 @@ navigate and edit relatively large text files in it.
 ## Start editing
 
 ```console
-$ python levi.py a_file.txt
+$ yes The five boxing wizards jump quickly. | head -n 1000 > input.txt
+$ python levi.py input.txt
 ```
 
 ## Manual
