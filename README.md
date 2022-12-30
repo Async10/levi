@@ -41,5 +41,5 @@ LEVI supports two modes
 |--------------------------------------------|--------------------------------------- |
 | <kbd>ENTER</kbd>                           | Insert new line                        |
 | <kbd>Any displayable ASCII character</kbd> | Insert the character                   |
-| <kbd>Backspace</kbd>                       | Delete one character before the cursor |
+| <kbd>BACKSPACE</kbd>                       | Delete one character before the cursor |
 | <kbd>CTRL+SPACE</kbd>                      | Switch to Normal Mode                  |

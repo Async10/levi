@@ -53,12 +53,17 @@ class Editor:
             self._line_idx = max(self._line_idx - 1, 0)
 
         l = self._get_current_line()
-        self._cursor = min(c, max(l.end - 2, l.begin))
+        if not self._text:
+            self._cursor = c
+        else:
+            self._cursor = min(c, max(l.end - (2 if self._text[l.end-1] == "\n" else 1), l.begin))
 
     def insert(self, text: str) -> None:
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
         self._cursor += len(text)
         self._recompute_lines()
+        if text.endswith("\n"):
+            self._line_idx += 1
 
     def save(self) -> None:
         with open(self._fpath, "w", encoding=self._encoding) as fobj:
@@ -80,8 +85,8 @@ class Editor:
         self._go_to_line(self._line_idx - 1)
 
     def move_right(self) -> None:
-        curr_line = self._get_current_line()
-        if self._cursor < curr_line.end - 2:
+        l = self._get_current_line()
+        if self._cursor < l.end - (2 if self._text[l.end-1] == "\n" else 1):
             self._cursor += 1
 
     def _recompute_lines(self) -> None:
@@ -245,6 +250,7 @@ class View:
         self.terminal.clear()
         terminal_height = self.terminal.size.lines
         lines = (list(data.lines) or ["\n"])[:terminal_height - 1]
+        if lines and lines[-1][-1] != "\n": lines[-1] += "\n"
         tildas = ["~\n" for _ in range(len(lines) + 1, terminal_height - 1)]
         pos = [f"Ln {data.cursor_line}, Col {data.cursor_column} "]
         mode = ["-- INSERT --"] if data.mode == EditorMode.INSERT else []
