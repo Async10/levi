@@ -41,28 +41,19 @@ class Editor:
     def cursor_line(self) -> int:
         return self._line_idx + 1
 
-    def delete_charecters(self, n: int = 1) -> None:
-        if n < 1:
-            raise ValueError("the number of characters to delete can not be less than 1")
-
-        curr_line = self._get_current_line()
-        if self._text[curr_line.begin:curr_line.end] in ("\n", ""):
+    def delete_character(self, move_left: bool = False) -> None:
+        l = self._get_current_line()
+        if not move_left and self._text[l.begin:l.end] in ("\n", ""):
             return
 
-        self._text = (
-            self._text[:self._cursor]
-            + self._text[min(self._cursor + n, len(self._text)):])
+        c = max(self._cursor - 1 if move_left else self._cursor, 0)
+        self._text = self._text[:c] + self._text[c+1:]
         self._recompute_lines()
-        curr_line = self._get_current_line()
-        self._cursor = min(self._cursor, curr_line.end - 2)
+        if move_left and c + 1 == l.begin:
+            self._line_idx = max(self._line_idx - 1, 0)
 
-    def delete_line(self) -> None:
-        curr_line = self._get_current_line()
-        self._text = self._text[:curr_line.begin] + self._text[curr_line.end + 1:]
-        self._line_idx = max(self._line_idx - 1, 0)
-        self._recompute_lines()
-        curr_line = self._get_current_line()
-        self._cursor = curr_line.begin
+        l = self._get_current_line()
+        self._cursor = min(c, max(l.end - 2, l.begin))
 
     def insert(self, text: str) -> None:
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
@@ -105,10 +96,11 @@ class Editor:
                 self._lines.append(EditorLine(begin, end))
 
     def _go_to_line(self, line: int) -> None:
-        offset = self.cursor_column - 1
+        curr_line = self._get_current_line()
+        offset = max(self._cursor - curr_line.begin, 0)
         self._line_idx = max(min(line, len(self._lines) - 1), 0)
         curr_line = self._get_current_line()
-        self._cursor = max(min(curr_line.begin + offset, curr_line.end - 1), 0)
+        self._cursor = max(min(curr_line.begin + offset, max(curr_line.end - 1, curr_line.begin)), 0)
         try:
             while self._text[self._cursor] == "\n" and self._cursor > 0:
                 self._cursor -= 1
@@ -151,6 +143,7 @@ class TerminalSize:
 class Terminal:
     CTRL_C = "\x03"
     CTRL_SPACE = "\x00"
+    BS = "\x7F"
 
     stdin: TextIO
     stdout: TextIO
@@ -253,8 +246,9 @@ class View:
         terminal_height = self.terminal.size.lines
         lines = (list(data.lines) or ["\n"])[:terminal_height - 1]
         tildas = ["~\n" for _ in range(len(lines) + 1, terminal_height - 1)]
+        pos = [f"Ln {data.cursor_line}, Col {data.cursor_column} "]
         mode = ["-- INSERT --"] if data.mode == EditorMode.INSERT else []
-        self.terminal.write("".join(lines + tildas + mode))
+        self.terminal.write("".join(lines + tildas + pos + mode))
         self.terminal.move_cursor(data.cursor_line, data.cursor_column)
         self.terminal.flush()
 
@@ -279,52 +273,25 @@ class Controller:
         self.view.rerender(self._get_view_data())
 
     def loop(self) -> None:
-        cmd = ""
         while True:
             self.rerender()
-            cmd += self.view.get_key()
+            cmd = self.view.get_key()
             if self.mode == EditorMode.NORMAL:
-                match tuple(cmd):
-                    case ("h",):
-                        self.editor.move_left()
-                        cmd = ""
-                    case ("j",):
-                        self.editor.move_down()
-                        cmd = ""
-                    case ("k",):
-                        self.editor.move_up()
-                        cmd = ""
-                    case ("l",):
-                        self.editor.move_right()
-                        cmd = ""
-                    case ("i",):
-                        self.mode = EditorMode.INSERT
-                        cmd = ""
-                    case ("s",):
-                        self.editor.save()
-                        cmd = ""
-                    case ("x",):
-                        self.editor.delete_charecters(n = 1)
-                        cmd = ""
-                    case ("d",):
-                        pass
-                    case ("d", x):
-                        if x == "d":
-                            self.editor.delete_line()
-
-                        cmd = ""
-                    case ("q",):
-                        return
-                    case _:
-                        cmd = ""
+                match cmd:
+                    case "h": self.editor.move_left()
+                    case "j": self.editor.move_down()
+                    case "k": self.editor.move_up()
+                    case "l": self.editor.move_right()
+                    case "i": self.mode = EditorMode.INSERT
+                    case "s": self.editor.save()
+                    case "x": self.editor.delete_character()
+                    case "q": return
+                    case _: pass
             elif self.mode == EditorMode.INSERT:
                 match cmd:
-                    case Terminal.CTRL_SPACE:
-                        self.mode = EditorMode.NORMAL
-                        cmd = ""
-                    case _:
-                        self.editor.insert(cmd)
-                        cmd = ""
+                    case Terminal.CTRL_SPACE: self.mode = EditorMode.NORMAL
+                    case Terminal.BS: self.editor.delete_character(move_left=True)
+                    case _: self.editor.insert(cmd)
 
     def _get_view_data(self) -> ViewData:
         return ViewData(
@@ -357,3 +324,5 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
+
+# TODO: Delete line

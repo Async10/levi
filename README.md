@@ -34,12 +34,12 @@ LEVI supports two modes
 | <kbd>k</kbd>                             | Move up one line                   |
 | <kbd>l</kbd>                             | Move right one character           |
 | <kbd>x</kbd>                             | Delete one character at the cursor |
-| <kbd>dd</kbd>                            | Delete line                        |
 
 ## Insert Mode
 
-| Key                                        | Description           |
-|--------------------------------------------|-----------------------|
-| <kbd>ENTER</kbd>                           | Insert new line       |
-| <kbd>Any displayable ASCII character</kbd> | Insert the character  |
-| <kbd>CTRL+SPACE</kbd>                      | Switch to Normal Mode |
+| Key                                        | Description                            |
+|--------------------------------------------|--------------------------------------- |
+| <kbd>ENTER</kbd>                           | Insert new line                        |
+| <kbd>Any displayable ASCII character</kbd> | Insert the character                   |
+| <kbd>Backspace</kbd>                       | Delete one character before the cursor |
+| <kbd>CTRL+SPACE</kbd>                      | Switch to Normal Mode                  |
