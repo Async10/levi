@@ -52,8 +52,9 @@ class Editor:
         self._text = (
             self._text[:self._cursor]
             + self._text[min(self._cursor + n, len(self._text)):])
-        self._cursor = max(self._cursor - n, curr_line.begin)
         self._recompute_lines()
+        curr_line = self._get_current_line()
+        self._cursor = min(self._cursor, curr_line.end - 2)
 
     def delete_line(self) -> None:
         curr_line = self._get_current_line()
@@ -302,7 +303,7 @@ class Controller:
                     case ("s",):
                         self.editor.save()
                         cmd = ""
-                    case "x":
+                    case ("x",):
                         self.editor.delete_charecters(n = 1)
                         cmd = ""
                     case ("d",):
