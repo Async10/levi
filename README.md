@@ -19,10 +19,10 @@ $ python levi.py input.txt
 
 ## Manual
 
-LEVI supports two modes
+LEVI supports two modes:
 
-- Normal Mode for navigating and editing text and
-- Insert Mode for inserting new characters.
+- Normal mode for navigating and editing text and
+- insert Mode for inserting new characters.
 
 ### Normal Mode
 
@@ -36,6 +36,7 @@ LEVI supports two modes
 | <kbd>w</kbd>                             | Move word forward                  |
 | <kbd>W</kbd>                             | Move word backward                 |
 | <kbd>x</kbd>                             | Delete one character at the cursor |
+| <kbd>i</kbd>                             | Switch to insert mode              |
 
 ## Insert Mode
 
@@ -44,4 +45,4 @@ LEVI supports two modes
 | <kbd>ENTER</kbd>                           | Insert new line                        |
 | <kbd>Any displayable ASCII character</kbd> | Insert the character                   |
 | <kbd>BACKSPACE</kbd>                       | Delete one character before the cursor |
-| <kbd>CTRL+SPACE</kbd>                      | Switch to Normal Mode                  |
+| <kbd>CTRL+SPACE</kbd>                      | Switch to normal mode                  |
