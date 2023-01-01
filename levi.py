@@ -1,5 +1,6 @@
 import os
 import signal
+import string
 import sys
 import termios
 from dataclasses import dataclass
@@ -41,29 +42,44 @@ class Editor:
     def cursor_line(self) -> int:
         return self._line_idx + 1
 
-    def delete_character(self, move_left: bool = False) -> None:
-        l = self._get_current_line()
-        if not move_left and self._text[l.begin:l.end] in ("\n", ""):
+    def back_delete_character(self) -> None:
+        if self._cursor <= 0:
             return
 
-        c = max(self._cursor - 1 if move_left else self._cursor, 0)
-        self._text = self._text[:c] + self._text[c+1:]
+        idx = max(self._cursor - 1, 0)
+        self._text = self._text[:idx] + self._text[idx + 1:]
+        total_lines = len(self._lines)
         self._recompute_lines()
-        if move_left and c + 1 == l.begin:
+        if total_lines > len(self._lines):
             self._line_idx = max(self._line_idx - 1, 0)
 
-        l = self._get_current_line()
-        if not self._text:
-            self._cursor = c
-        else:
-            self._cursor = min(c, max(l.end - (2 if self._text[l.end-1] == "\n" else 1), l.begin))
+        self._recompute_lines()
+        self._cursor = idx
+
+    def delete_character(self) -> None:
+        current_line = self._get_current_line()
+        if len(current_line) <= 0:
+            return
+
+        idx = self._cursor
+        self._text = self._text[:idx] + self._text[idx + 1:]
+        total_lines = len(self._lines)
+        self._recompute_lines()
+        if total_lines > len(self._lines):
+            self._line_idx = max(self._line_idx - 1, 0)
+
+        current_line = self._get_current_line()
+        self._cursor = min(self._cursor, current_line.end)
 
     def insert(self, text: str) -> None:
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
         self._cursor += len(text)
+        total_lines = len(self._lines)
         self._recompute_lines()
-        if text.endswith("\n"):
-            self._line_idx += 1
+        if len(self._lines) > total_lines:
+            self._line_idx = max(min(self._line_idx + 1, len(self._lines) - 1), 0)
+            current_line = self._get_current_line()
+            self._cursor = current_line.begin
 
     def save(self) -> None:
         with open(self._fpath, "w", encoding=self._encoding) as fobj:
@@ -86,7 +102,7 @@ class Editor:
 
     def move_right(self) -> None:
         l = self._get_current_line()
-        if self._cursor < l.end - (2 if self._text[l.end-1] == "\n" else 1):
+        if self._cursor + 1 < l.end:
             self._cursor += 1
 
     def _recompute_lines(self) -> None:
@@ -106,11 +122,6 @@ class Editor:
         self._line_idx = max(min(line, len(self._lines) - 1), 0)
         curr_line = self._get_current_line()
         self._cursor = max(min(curr_line.begin + offset, max(curr_line.end - 1, curr_line.begin)), 0)
-        try:
-            while self._text[self._cursor] == "\n" and self._cursor > 0:
-                self._cursor -= 1
-        except IndexError:
-            pass
 
     def _go_to_coloumn(self, column: int) -> None:
         curr_line = self._get_current_line()
@@ -123,6 +134,9 @@ class Editor:
         end = self._cursor if not curr else curr.end
         return EditorLine(begin, end)
 
+    def _get_line_text(self, line: "EditorLine") -> str:
+        return self._text[line.begin:line.end]
+
 
 class EditorMode(Enum):
     NORMAL = auto()
@@ -133,6 +147,9 @@ class EditorMode(Enum):
 class EditorLine:
     begin: int
     end: int
+
+    def __len__(self) -> int:
+        return max(self.end - self.begin, 0)
 
 
 class NoTTYException(Exception):
@@ -248,15 +265,14 @@ class View:
 
     def rerender(self, data: ViewData):
         self.terminal.clear()
-        terminal_height = self.terminal.size.lines
-        lines = (list(data.lines) or ["\n"])[:terminal_height - 1]
+        term_size = self.terminal.size
+        lines = (list(data.lines) or ["\n"])[:term_size.lines - 1]
         if lines and lines[-1][-1] != "\n": lines[-1] += "\n"
-        tildas = ["~\n" for _ in range(len(lines) + 1, terminal_height - 1)]
+        tildas = ["~\n" for _ in range(len(lines) + 1, term_size.lines - 1)]
         pos = [f"Ln {data.cursor_line}, Col {data.cursor_column} "]
         mode = ["-- INSERT --"] if data.mode == EditorMode.INSERT else []
         self.terminal.write("".join(lines + tildas + pos + mode))
         self.terminal.move_cursor(data.cursor_line, data.cursor_column)
-        self.terminal.flush()
 
 
 class Controller:
@@ -296,8 +312,10 @@ class Controller:
             elif self.mode == EditorMode.INSERT:
                 match cmd:
                     case Terminal.CTRL_SPACE: self.mode = EditorMode.NORMAL
-                    case Terminal.BS: self.editor.delete_character(move_left=True)
-                    case _: self.editor.insert(cmd)
+                    case Terminal.BS: self.editor.back_delete_character()
+                    case _:
+                        if cmd in string.printable:
+                            self.editor.insert(cmd)
 
     def _get_view_data(self) -> ViewData:
         return ViewData(
