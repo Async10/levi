@@ -207,8 +207,7 @@ class Terminal:
         if not self.stdin.isatty() or not self.stdout.isatty():
             raise NoTTYException()
 
-    @property
-    def size(self):
+    def get_size(self):
         tmp = os.get_terminal_size(self.stdout.fileno())
         return TerminalSize(tmp.lines, tmp.columns)
 
@@ -250,8 +249,11 @@ class Terminal:
         self.ansi_escape("[H")
 
     def move_cursor(self, line: int, column: int):
-        if line < 0: raise ValueError("line has to be greater than 0")
-        if column < 0: raise ValueError("column has to be greater than 0")
+        size = self.get_size()
+        if line < 0 or line > size.lines:
+            raise ValueError(f"line has to be greater than 0 and less than {size.lines + 1}")
+        if column < 0 or column > size.columns:
+            raise ValueError(f"column has to be greater than 0 and less than {size.columns + 1}")
         self.ansi_escape(f"[{line};{column}H")
 
     def ansi_escape(self, code: str) -> None:
@@ -281,40 +283,63 @@ class ViewData:
     cursor_line: int
     cursor_column: int
 
+@dataclass
+class ViewCursor:
+    line: int
+    column: int
 
 class View:
     terminal: Terminal
 
-    def __init__(self, terminal: Terminal):
+    def __init__(self, terminal: Terminal) -> None:
         self.terminal = terminal
 
-    def get_key(self):
+    def get_key(self) -> str:
         return self.terminal.read_key()
 
-    def get_view_line(self, line: str, cursor_column: int) -> str:
-        columns = self.terminal.size.columns
+    def rerender(self, data: ViewData) -> None:
+        self.terminal.clear()
+        lines = self._get_view_lines(data)
+        lines.append(self._get_mode_line(data))
+        assert len(lines) == self.terminal.get_size().lines
+        self.terminal.write("".join(lines))
+        view_cursor = self._get_cursor(data)
+        self.terminal.move_cursor(
+            view_cursor.line, view_cursor.column)
+
+    def _get_cursor(self, data: ViewData) -> ViewCursor:
+        max_view_lines = self.terminal.get_size().lines - 1
+        view_cursor_line = data.cursor_line - max(data.cursor_line - max_view_lines, 0)
+        columns = self.terminal.get_size().columns
+        view_cursor_column = data.cursor_column - max(data.cursor_column - columns, 0)
+        return ViewCursor(view_cursor_line, view_cursor_column)
+
+    def _get_view_lines(self, data: ViewData) -> list[str]:
+        res: list[str] = []
+        max_view_lines = self.terminal.get_size().lines - 1
+        begin = max(data.cursor_line - max_view_lines, 0)
+        for line in list(data.lines)[begin:begin+max_view_lines]:
+            res.append(self._get_view_line(line, data.cursor_column))
+
+        empty_view_lines = max_view_lines - len(res)
+        while empty_view_lines:
+            res.append("~\n")
+            empty_view_lines -= 1
+
+        return res
+
+    def _get_view_line(self, line: str, cursor_column: int) -> str:
+        columns = self.terminal.get_size().columns
         begin = max(cursor_column - columns, 0)
         view_line = line[begin:begin+columns]
         if view_line.endswith("\n"): return view_line
         return view_line + "\n"
 
-    def get_view_lines(self, lines: Iterable[str], cursor_line: int, cursor_column: int) -> list[str]:
-        res: list[str] = []
-        for line in lines:
-            res.append(self.get_view_line(line, cursor_column))
-
-        return res
-
-    def rerender(self, data: ViewData):
-        self.terminal.clear()
-        term_size = self.terminal.size
-        lines = self.get_view_lines(data.lines, data.cursor_line, data.cursor_column)
-        if lines and lines[-1][-1] != "\n": lines[-1] += "\n"
-        tildas = ["~\n" for _ in range(len(lines) + 1, term_size.lines - 1)]
-        pos = [f"Ln {data.cursor_line}, Col {data.cursor_column} "]
-        mode = ["-- INSERT --"] if data.mode == EditorMode.INSERT else []
-        self.terminal.write("".join(lines + tildas + pos + mode))
-        self.terminal.move_cursor(data.cursor_line, data.cursor_column)
+    def _get_mode_line(self, data: ViewData) -> str:
+        pos = f"Ln {data.cursor_line}, Col {data.cursor_column}"
+        mode_string = f"-- {'INSERT' if data.mode == EditorMode.INSERT else 'NORMAL'} --"
+        columns = self.terminal.get_size().columns
+        return mode_string + pos.rjust(columns - len(mode_string), " ")
 
 
 class Controller:
