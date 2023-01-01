@@ -59,11 +59,7 @@ class Editor:
             return
 
         self.mode = EditorMode.NORMAL
-        current_line = self._get_current_line()
-        if (len(current_line) > 1
-                and self._cursor + 1 == current_line.end
-                and self._text[self._cursor] == "\n"):
-            self._cursor -= 1
+        self._correct_cursor_position()
 
     def back_delete_character(self) -> None:
         if self._cursor <= 0:
@@ -141,11 +137,12 @@ class Editor:
                 self._lines.append(EditorLine(begin, end))
 
     def _go_to_line(self, line: int) -> None:
-        curr_line = self._get_current_line()
-        offset = max(self._cursor - curr_line.begin, 0)
+        current_line = self._get_current_line()
+        offset = max(self._cursor - current_line.begin, 0)
         self._line_idx = max(min(line, len(self._lines) - 1), 0)
-        curr_line = self._get_current_line()
-        self._cursor = max(min(curr_line.begin + offset, max(curr_line.end - 1, curr_line.begin)), 0)
+        current_line = self._get_current_line()
+        self._cursor = max(min(current_line.begin + offset, max(current_line.end - 1, current_line.begin)), 0)
+        self._correct_cursor_position()
 
     def _go_to_coloumn(self, column: int) -> None:
         curr_line = self._get_current_line()
@@ -160,6 +157,13 @@ class Editor:
 
     def _get_line_text(self, line: "EditorLine") -> str:
         return self._text[line.begin:line.end]
+
+    def _correct_cursor_position(self) -> None:
+        current_line = self._get_current_line()
+        if (len(current_line) > 1
+                and self._cursor + 1 == current_line.end
+                and self._text[self._cursor] == "\n"):
+            self._cursor = max(self._cursor - 1, 0)
 
 
 class EditorMode(Enum):
@@ -287,10 +291,24 @@ class View:
     def get_key(self):
         return self.terminal.read_key()
 
+    def get_view_line(self, line: str, cursor_column: int) -> str:
+        columns = self.terminal.size.columns
+        begin = max(cursor_column - columns, 0)
+        view_line = line[begin:begin+columns]
+        if view_line.endswith("\n"): return view_line
+        return view_line + "\n"
+
+    def get_view_lines(self, lines: Iterable[str], cursor_line: int, cursor_column: int) -> list[str]:
+        res: list[str] = []
+        for line in lines:
+            res.append(self.get_view_line(line, cursor_column))
+
+        return res
+
     def rerender(self, data: ViewData):
         self.terminal.clear()
         term_size = self.terminal.size
-        lines = (list(data.lines) or ["\n"])[:term_size.lines - 1]
+        lines = self.get_view_lines(data.lines, data.cursor_line, data.cursor_column)
         if lines and lines[-1][-1] != "\n": lines[-1] += "\n"
         tildas = ["~\n" for _ in range(len(lines) + 1, term_size.lines - 1)]
         pos = [f"Ln {data.cursor_line}, Col {data.cursor_column} "]
