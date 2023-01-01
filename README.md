@@ -33,6 +33,8 @@ LEVI supports two modes
 | <kbd>j</kbd>                             | Move down one line                 |
 | <kbd>k</kbd>                             | Move up one line                   |
 | <kbd>l</kbd>                             | Move right one character           |
+| <kbd>w</kbd>                             | Move word forward                  |
+| <kbd>W</kbd>                             | Move word backward                 |
 | <kbd>x</kbd>                             | Delete one character at the cursor |
 
 ## Insert Mode

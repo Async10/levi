@@ -133,9 +133,19 @@ class Editor:
                 if prev_ch == "\n":
                     self._line_idx = min(self._line_idx + 1, len(self._lines) - 1)
 
-                break
+                self._correct_cursor_position()
+                return
 
-        self._correct_cursor_position()
+    def move_word_backward(self) -> None:
+        for idx, ch in enumerate(reversed(self._text[:self._cursor]), start=1):
+            prev_ch = self._text[self._cursor - idx + 1]
+            if prev_ch in string.whitespace and not ch in string.whitespace:
+                self._cursor = max(self._cursor - idx, 0)
+                if prev_ch == "\n":
+                    self._line_idx = max(self._line_idx - 1, 0)
+
+                self._correct_cursor_position()
+                return
 
     def _recompute_lines(self) -> None:
         if self._lines is None:
@@ -381,6 +391,7 @@ class Controller:
                     case "k": self.editor.move_up()
                     case "l": self.editor.move_right()
                     case "w": self.editor.move_word_forward()
+                    case "W": self.editor.move_word_backward()
                     case "a": self.editor.switch_to_insert_mode(append_characters=True)
                     case "i": self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
