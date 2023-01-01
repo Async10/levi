@@ -10,6 +10,7 @@ from typing import Any, Generator, Iterable, Optional, TextIO
 
 
 class Editor:
+    mode: "EditorMode"
     _text: str
     _fpath: str
     _encoding: str
@@ -21,6 +22,7 @@ class Editor:
         if not fobj.readable():
             raise ValueError("Provided file is not readable")
 
+        self.mode = EditorMode.NORMAL
         self._text = fobj.read()
         self._fpath = fobj.name
         self._encoding = fobj.encoding
@@ -41,6 +43,27 @@ class Editor:
     @property
     def cursor_line(self) -> int:
         return self._line_idx + 1
+
+    def switch_to_insert_mode(self, append_characters: bool = False):
+        if self.mode == EditorMode.INSERT:
+            return
+        
+        self.mode = EditorMode.INSERT
+        if append_characters:
+            current_line = self._get_current_line()
+            if self._cursor + 1 < current_line.end:
+                self._cursor += 1
+
+    def switch_to_normal_mode(self):
+        if self.mode == EditorMode.NORMAL:
+            return
+
+        self.mode = EditorMode.NORMAL
+        current_line = self._get_current_line()
+        if (len(current_line) > 1
+                and self._cursor + 1 == current_line.end
+                and self._text[self._cursor] == "\n"):
+            self._cursor -= 1
 
     def back_delete_character(self) -> None:
         if self._cursor <= 0:
@@ -101,9 +124,10 @@ class Editor:
         self._go_to_line(self._line_idx - 1)
 
     def move_right(self) -> None:
-        l = self._get_current_line()
-        if self._cursor + 1 < l.end:
-            self._cursor += 1
+        current_line = self._get_current_line()
+        nc = self._cursor + 1
+        if nc < current_line.end and self._text[nc] != "\n":
+            self._cursor = nc
 
     def _recompute_lines(self) -> None:
         if self._lines is None:
@@ -279,10 +303,7 @@ class Controller:
     view: View
     editor: Editor
 
-    mode: EditorMode
-
     def __init__(self, view: View, editor: Editor):
-        self.mode = EditorMode.NORMAL
         self.editor = editor
         self.view = view
 
@@ -298,20 +319,21 @@ class Controller:
         while True:
             self.rerender()
             cmd = self.view.get_key()
-            if self.mode == EditorMode.NORMAL:
+            if self.editor.mode == EditorMode.NORMAL:
                 match cmd:
                     case "h": self.editor.move_left()
                     case "j": self.editor.move_down()
                     case "k": self.editor.move_up()
                     case "l": self.editor.move_right()
-                    case "i": self.mode = EditorMode.INSERT
+                    case "a": self.editor.switch_to_insert_mode(append_characters=True)
+                    case "i": self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
                     case "x": self.editor.delete_character()
                     case "q": return
                     case _: pass
-            elif self.mode == EditorMode.INSERT:
+            elif self.editor.mode == EditorMode.INSERT:
                 match cmd:
-                    case Terminal.CTRL_SPACE: self.mode = EditorMode.NORMAL
+                    case Terminal.CTRL_SPACE: self.editor.switch_to_normal_mode()
                     case Terminal.BS: self.editor.back_delete_character()
                     case _:
                         if cmd in string.printable:
@@ -320,7 +342,7 @@ class Controller:
     def _get_view_data(self) -> ViewData:
         return ViewData(
             self.editor.get_lines(),
-            self.mode,
+            self.editor.mode,
             self.editor.cursor_line,
             self.editor.cursor_column)
 
