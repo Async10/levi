@@ -358,8 +358,8 @@ class Terminal:
         self.stdout.flush()
 
     def clear(self):
-        self.ansi_escape("[2J")
         self.ansi_escape("[H")
+        self.ansi_escape("[J")
 
     def move_cursor(self, line: int, column: int):
         size = self.get_size()
@@ -413,7 +413,7 @@ class View:
         return self.terminal.read_key()
 
     def rerender(self, data: ViewData) -> None:
-        self.terminal.clear()
+        self.terminal.move_cursor(1, 1)
         lines = self._get_view_lines(data)
         lines.append(self._get_mode_line(data))
         assert len(lines) == self.terminal.get_size().lines
@@ -555,7 +555,6 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
-# TODO: Rerender without clearing screen
 # TODO: Line numbers
 # TODO: Make commands take a count
 # TODO: Undo edit / redo edit
