@@ -19,7 +19,7 @@ class File:
 class Editor:
     TAB_WIDTH = 4
 
-    mode: "EditorMode"
+    _mode: "EditorMode"
     _text: str
     _file_path: str
     _encoding: str
@@ -28,7 +28,7 @@ class Editor:
     _line_idx: int
 
     def __init__(self, file: File) -> None:
-        self.mode = EditorMode.NORMAL
+        self._mode = EditorMode.NORMAL
         self._text = file.text
         self._file_path = file.path
         self._encoding = file.encoding
@@ -36,6 +36,10 @@ class Editor:
         self._line_idx = 0
         self._lines = []
         self._recompute_lines()
+
+    @property
+    def mode(self):
+        return self._mode
 
     @property
     def cursor_column(self) -> int:
@@ -54,7 +58,7 @@ class Editor:
         if self.mode == EditorMode.INSERT:
             return
 
-        self.mode = EditorMode.INSERT
+        self._mode = EditorMode.INSERT
         if append_characters:
             current_line = self._get_current_line()
             if self._cursor + 1 < current_line.end:
@@ -64,7 +68,7 @@ class Editor:
         if self.mode == EditorMode.NORMAL:
             return
 
-        self.mode = EditorMode.NORMAL
+        self._mode = EditorMode.NORMAL
         self._correct_cursor_position()
 
     def back_delete_character(self) -> None:
@@ -552,6 +556,7 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
 # TODO: Rerender without clearing screen
+# TODO: Line numbers
+# TODO: Make commands take a count
 # TODO: Undo edit / redo edit
 # TODO: Search / Replace
-# TODO: Open editor without file
