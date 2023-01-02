@@ -9,25 +9,29 @@ from types import FrameType, TracebackType
 from typing import Any, Generator, Iterable, Optional, TextIO
 
 
+@dataclass
+class File:
+    text: str
+    path: str
+    encoding: str = "ascii"
+
+
 class Editor:
     TAB_WIDTH = 4
 
     mode: "EditorMode"
     _text: str
-    _fpath: str
+    _file_path: str
     _encoding: str
     _cursor: int
     _lines: list["EditorLine"]
     _line_idx: int
 
-    def __init__(self, fobj: TextIO) -> None:
-        if not fobj.readable():
-            raise ValueError("Provided file is not readable")
-
+    def __init__(self, file: File) -> None:
         self.mode = EditorMode.NORMAL
-        self._text = fobj.read()
-        self._fpath = fobj.name
-        self._encoding = fobj.encoding
+        self._text = file.text
+        self._file_path = file.path
+        self._encoding = file.encoding
         self._cursor = 0
         self._line_idx = 0
         self._lines = []
@@ -49,7 +53,7 @@ class Editor:
     def switch_to_insert_mode(self, append_characters: bool = False):
         if self.mode == EditorMode.INSERT:
             return
-        
+
         self.mode = EditorMode.INSERT
         if append_characters:
             current_line = self._get_current_line()
@@ -104,7 +108,7 @@ class Editor:
             self._cursor = current_line.begin
 
     def save(self) -> None:
-        with open(self._fpath, "w", encoding=self._encoding) as fobj:
+        with open(self._file_path, "w", encoding=self._encoding) as fobj:
             fobj.write(self._text)
 
     def get_lines(self) -> Generator[str, None, None]:
@@ -191,11 +195,20 @@ class Editor:
             self._lines = []
 
         self._lines.clear()
-        for idx, ch in enumerate(self._text):
-            if ch == "\n" or idx == len(self._text) - 1:
-                begin = 0 if not self._lines else self._lines[-1].end
-                end = idx + 1
-                self._lines.append(EditorLine(begin, end))
+        if self._text:
+            for idx, ch in enumerate(self._text):
+                is_newline = ch == "\n"
+                is_last_character = idx + 1 == len(self._text)
+                if is_newline or is_last_character:
+                    begin = 0 if not self._lines else self._lines[-1].end
+                    end = idx + 1
+                    self._lines.append(EditorLine(begin, end))
+
+                if is_last_character and is_newline:
+                    begin = self._lines[-1].end
+                    self._lines.append(EditorLine(begin, begin))
+        else:
+            self._lines.append(EditorLine(0, 0))
 
     def _go_to_line(self, line: int) -> None:
         current_line = self._get_current_line()
@@ -212,7 +225,7 @@ class Editor:
 
     def _get_current_line(self) -> "EditorLine":
         curr = None if not self._lines else self._lines[self._line_idx]
-        begin = 0 if not curr else curr.begin
+        begin = 0 if curr is None else curr.begin
         end = self._cursor if not curr else curr.end
         return EditorLine(begin, end)
 
@@ -221,10 +234,13 @@ class Editor:
 
     def _correct_cursor_position(self) -> None:
         current_line = self._get_current_line()
-        if (len(current_line) > 1
-                and self._cursor + 1 == current_line.end
-                and self._text[self._cursor] == "\n"):
-            self._cursor = max(self._cursor - 1, 0)
+        if self._cursor > current_line.end:
+            self._cursor = current_line.end
+
+        if len(current_line) > 1 and self._text[self._cursor] == "\n":
+            self._cursor -= 1
+
+        self._cursor = max(min(self._cursor, len(self._text) - 1), 0)
 
     def _skip_whitespace_forward(self) -> int:
         idx = self._cursor + 1
@@ -483,23 +499,34 @@ class Controller:
             self.editor.cursor_column)
 
 
+def get_file(file_path: str) -> File:
+    try:
+        with open(file_path, "r") as f:
+            return File(f.read(), f.name, f.encoding)
+    except FileNotFoundError:
+        return File(text="", path=file_path)
+
+
+def error(msg: str) -> int:
+    print(f"ERROR: {msg}", file=sys.stderr)
+    return 1
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
-        print("ERROR: no input file is provided", file=sys.stderr)
+        rv = error("no input file provided")
         print("Usage: python levi.py INPUT_FILE")
-        return 1
+        return rv
 
     file_path = argv[1]
     try:
-        with open(file_path, "r") as fobj, Terminal() as terminal:
-            controller = Controller(View(terminal), Editor(fobj))
+        with Terminal() as terminal:
+            controller = Controller(
+                View(terminal), Editor(get_file(file_path)))
             controller.loop()
     except OSError as e:
-        print(f"ERROR: could not open file {file_path}: {e}")
-        return 1
+        return error(f"could not open file {file_path}: {e}")
     except NoTTYException:
-        print(f"ERROR: please run in the terminal")
-        return 1
+        return error(f"please run in the terminal")
 
     return 0
 
@@ -507,7 +534,7 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
-# TODO: Delete line
+# TODO: Rerender without clearing screen
 # TODO: Undo edit / redo edit
-# TODO: Search
+# TODO: Search / Replace
 # TODO: Open editor without file

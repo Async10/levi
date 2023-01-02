@@ -13,7 +13,6 @@ comfortably navigate and edit relatively large text files in it.
 ## Start editing
 
 ```console
-$ yes The five boxing wizards jump quickly. | head -n 1000 > input.txt
 $ python levi.py input.txt
 ```
 
@@ -29,6 +28,7 @@ LEVI supports two modes:
 | Key                                      | Description                        |
 |------------------------------------------|------------------------------------|
 | <kbd>q</kbd>                             | Quit the editor                    |
+| <kbd>s</kbd>                             | Save file                          |
 | <kbd>h</kbd>                             | Move left one character            |
 | <kbd>j</kbd>                             | Move down one line                 |
 | <kbd>k</kbd>                             | Move up one line                   |
