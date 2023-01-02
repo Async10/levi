@@ -39,13 +39,15 @@ LEVI supports two modes:
 | <kbd>{</kbd>                             | Move paragraph backward            |
 | <kbd>}</kbd>                             | Move paragraph forward             |
 | <kbd>x</kbd>                             | Delete one character at the cursor |
+| <kbd>DELETE</kdb>                        | Delete one character at the cursor |
 | <kbd>i</kbd>                             | Switch to insert mode              |
 
 ## Insert Mode
 
 | Key                                        | Description                            |
-|--------------------------------------------|--------------------------------------- |
+|--------------------------------------------|----------------------------------------|
 | <kbd>ENTER</kbd>                           | Insert new line                        |
 | <kbd>Any displayable ASCII character</kbd> | Insert the character                   |
 | <kbd>BACKSPACE</kbd>                       | Delete one character before the cursor |
+| <kbd>DELETE</kdb>                          | Delete one character at the cursor     |
 | <kbd>CTRL+SPACE</kbd>                      | Switch to normal mode                  |

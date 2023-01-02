@@ -10,6 +10,8 @@ from typing import Any, Generator, Iterable, Optional, TextIO
 
 
 class Editor:
+    TAB_WIDTH = 4
+
     mode: "EditorMode"
     _text: str
     _fpath: str
@@ -90,17 +92,8 @@ class Editor:
         current_line = self._get_current_line()
         self._cursor = min(self._cursor, current_line.end)
 
-    def delete_word(self) -> None:
-        raise NotImplementedError()
-
-    def delete_line(self) -> None:
-        current_line = self._get_current_line()
-        self._text = self._text[:current_line.begin] + self._text[current_line.end:]
-        self._recompute_lines()
-        self._line_idx = max(min(self._line_idx, len(self._lines) - 1), 0)
-        self._correct_cursor_position()
-
     def insert(self, text: str) -> None:
+        text = text.replace("\t", " " * Editor.TAB_WIDTH)
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
         self._cursor += len(text)
         total_lines = len(self._lines)
@@ -284,6 +277,7 @@ class Terminal:
     CTRL_C = "\x03"
     CTRL_SPACE = "\x00"
     BS = "\x7F"
+    DEL = "\x1b[3~"
 
     stdin: TextIO
     stdout: TextIO
@@ -469,13 +463,14 @@ class Controller:
                     case "a": self.editor.switch_to_insert_mode(append_characters=True)
                     case "i": self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
-                    case "x": self.editor.delete_character()
+                    case "x" | Terminal.DEL: self.editor.delete_character()
                     case "q": return
                     case _: pass
             elif self.editor.mode == EditorMode.INSERT:
                 match cmd:
                     case Terminal.CTRL_SPACE: self.editor.switch_to_normal_mode()
                     case Terminal.BS: self.editor.back_delete_character()
+                    case Terminal.DEL: self.editor.delete_character()
                     case _:
                         if cmd in string.printable:
                             self.editor.insert(cmd)
@@ -514,3 +509,5 @@ if __name__ == "__main__":
 
 # TODO: Delete line
 # TODO: Undo edit / redo edit
+# TODO: Search
+# TODO: Open editor without file
