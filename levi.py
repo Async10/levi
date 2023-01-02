@@ -190,6 +190,15 @@ class Editor:
         self._cursor = max(nxt_cursor, 0)
         self._correct_cursor_position()
 
+    def move_to_beginning_of_line(self) -> None:
+        current_line = self._get_current_line()
+        self._cursor = current_line.begin
+
+    def move_to_end_of_line(self) -> None:
+        current_line = self._get_current_line()
+        self._cursor = current_line.end - 1
+        self._correct_cursor_position()
+
     def _recompute_lines(self) -> None:
         if self._lines is None:
             self._lines = []
@@ -474,10 +483,18 @@ class Controller:
                     case "w": self.editor.move_word_forward()
                     case "b": self.editor.move_word_backward()
                     case "e": self.editor.move_to_end_of_word()
+                    case "0": self.editor.move_to_beginning_of_line()
+                    case "$": self.editor.move_to_end_of_line()
                     case "{": self.editor.move_paragraph_backward()
                     case "}": self.editor.move_paragraph_forward()
                     case "a": self.editor.switch_to_insert_mode(append_characters=True)
+                    case "A":
+                        self.editor.move_to_end_of_line()
+                        self.editor.switch_to_insert_mode(append_characters=True)
                     case "i": self.editor.switch_to_insert_mode()
+                    case "I":
+                        self.editor.move_to_beginning_of_line()
+                        self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
                     case "x" | Terminal.DEL: self.editor.delete_character()
                     case "q": return

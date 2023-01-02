@@ -25,22 +25,27 @@ LEVI supports two modes:
 
 ### Normal Mode
 
-| Key                                      | Description                        |
-|------------------------------------------|------------------------------------|
-| <kbd>q</kbd>                             | Quit the editor                    |
-| <kbd>s</kbd>                             | Save file                          |
-| <kbd>h</kbd>                             | Move left one character            |
-| <kbd>j</kbd>                             | Move down one line                 |
-| <kbd>k</kbd>                             | Move up one line                   |
-| <kbd>l</kbd>                             | Move right one character           |
-| <kbd>w</kbd>                             | Move word forward                  |
-| <kbd>b</kbd>                             | Move word backward                 |
-| <kbd>e</kbd>                             | Move to end of word                |
-| <kbd>{</kbd>                             | Move paragraph backward            |
-| <kbd>}</kbd>                             | Move paragraph forward             |
-| <kbd>x</kbd>                             | Delete one character at the cursor |
-| <kbd>DELETE</kdb>                        | Delete one character at the cursor |
-| <kbd>i</kbd>                             | Switch to insert mode              |
+| Key                                      | Description                             |
+|------------------------------------------|-----------------------------------------|
+| <kbd>q</kbd>                             | Quit the editor                         |
+| <kbd>s</kbd>                             | Save file                               |
+| <kbd>h</kbd>                             | Move left one character                 |
+| <kbd>j</kbd>                             | Move down one line                      |
+| <kbd>k</kbd>                             | Move up one line                        |
+| <kbd>l</kbd>                             | Move right one character                |
+| <kbd>w</kbd>                             | Move word forward                       |
+| <kbd>b</kbd>                             | Move word backward                      |
+| <kbd>e</kbd>                             | Move to the end of the word             |
+| <kbd>0</kbd>                             | Move to the beginning of the line       |
+| <kbd>$</kbd>                             | Move to the end of the line             |
+| <kbd>{</kbd>                             | Move paragraph backward                 |
+| <kbd>}</kbd>                             | Move paragraph forward                  |
+| <kbd>x</kbd>                             | Delete character under the cursor       |
+| <kbd>DELETE</kdb>                        | Delete character under the cursor       |
+| <kbd>i</kbd>                             | Insert text before the cursor           |
+| <kbd>I</kbd>                             | Insert text at the begining of the line |
+| <kbd>a</kbd>                             | Append text after the cursor            |
+| <kbd>A</kbd>                             | Append text ath the end of the line     |
 
 ## Insert Mode
 
