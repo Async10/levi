@@ -90,6 +90,16 @@ class Editor:
         current_line = self._get_current_line()
         self._cursor = min(self._cursor, current_line.end)
 
+    def delete_word(self) -> None:
+        raise NotImplementedError()
+
+    def delete_line(self) -> None:
+        current_line = self._get_current_line()
+        self._text = self._text[:current_line.begin] + self._text[current_line.end:]
+        self._recompute_lines()
+        self._line_idx = max(min(self._line_idx, len(self._lines) - 1), 0)
+        self._correct_cursor_position()
+
     def insert(self, text: str) -> None:
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
         self._cursor += len(text)
@@ -126,26 +136,36 @@ class Editor:
             self._cursor = nc
 
     def move_word_forward(self) -> None:
-        for idx, ch in enumerate(self._text[self._cursor+1:], start=1):
-            prev_ch = self._text[self._cursor + idx - 1]
-            if prev_ch in string.whitespace and not ch in string.whitespace:
-                self._cursor = min(self._cursor + idx, len(self._text) - 1)
-                if prev_ch == "\n":
-                    self._line_idx = min(self._line_idx + 1, len(self._lines) - 1)
-
-                self._correct_cursor_position()
-                return
+        self.move_to_end_of_word()
+        self._skip_whitespace_forward()
+        self._correct_cursor_position()
 
     def move_word_backward(self) -> None:
-        for idx, ch in enumerate(reversed(self._text[:self._cursor]), start=1):
-            prev_ch = self._text[self._cursor - idx + 1]
-            if prev_ch in string.whitespace and not ch in string.whitespace:
-                self._cursor = max(self._cursor - idx, 0)
-                if prev_ch == "\n":
-                    self._line_idx = max(self._line_idx - 1, 0)
+        cursor = self._skip_whitespace_backward()
+        nxt_cursor = 0
+        while cursor > 0:
+            if self._text[cursor] in string.whitespace:
+                nxt_cursor = cursor + 1
+                break
 
-                self._correct_cursor_position()
-                return
+            cursor -= 1
+
+        self._cursor = nxt_cursor
+        self._correct_cursor_position()
+
+    def move_to_end_of_word(self) -> None:
+        cursor = self._skip_whitespace_forward()
+        current_line = self._get_current_line()
+        new_cursor = current_line.end - 1
+        while cursor < current_line.end - 1:
+            if self._text[cursor] in string.whitespace:
+                new_cursor = cursor - 1
+                break
+
+            cursor += 1
+
+        self._cursor = new_cursor
+        self._correct_cursor_position()
 
     def _recompute_lines(self) -> None:
         if self._lines is None:
@@ -186,6 +206,28 @@ class Editor:
                 and self._cursor + 1 == current_line.end
                 and self._text[self._cursor] == "\n"):
             self._cursor = max(self._cursor - 1, 0)
+
+    def _skip_whitespace_forward(self) -> int:
+        idx = self._cursor + 1
+        while idx + 1 < len(self._text) and self._text[idx] in string.whitespace:
+            if self._text[idx] == "\n":
+                self._line_idx += 1
+
+            idx += 1
+
+        self._cursor = idx
+        return idx
+
+    def _skip_whitespace_backward(self) -> int:
+        idx = self._cursor - 1
+        while idx > 0 and self._text[idx] in string.whitespace:
+            if self._text[idx] == "\n":
+                self._line_idx -= 1
+
+            idx -= 1
+
+        self._cursor = idx
+        return idx
 
 
 class EditorMode(Enum):
@@ -305,10 +347,12 @@ class ViewData:
     cursor_line: int
     cursor_column: int
 
+
 @dataclass
 class ViewCursor:
     line: int
     column: int
+
 
 class View:
     terminal: Terminal
@@ -328,6 +372,7 @@ class View:
         view_cursor = self._get_cursor(data)
         self.terminal.move_cursor(
             view_cursor.line, view_cursor.column)
+        self.terminal.flush()
 
     def _get_cursor(self, data: ViewData) -> ViewCursor:
         max_view_lines = self.terminal.get_size().lines - 1
@@ -391,7 +436,8 @@ class Controller:
                     case "k": self.editor.move_up()
                     case "l": self.editor.move_right()
                     case "w": self.editor.move_word_forward()
-                    case "W": self.editor.move_word_backward()
+                    case "b": self.editor.move_word_backward()
+                    case "e": self.editor.move_to_end_of_word()
                     case "a": self.editor.switch_to_insert_mode(append_characters=True)
                     case "i": self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
@@ -439,3 +485,4 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
 # TODO: Delete line
+# TODO: Undo edit / redo edit
