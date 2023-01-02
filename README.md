@@ -2,8 +2,13 @@
 
 LEVI or Lesser VI is a VI-like text editor for the terminal that I develop for
 fun. I started the project to get a better understanding of how text editors
-work.  My goal is to bring LEVI to a point where users will be able to
+work. My goal is to bring LEVI to a point where users will be able to
 comfortably navigate and edit relatively large text files in it.
+
+## Disclaimer
+
+This software is unfinished. It's features are quite limited, it might be slow
+and there may very well be bugs.
 
 ## Requirements
 
@@ -25,27 +30,29 @@ LEVI supports two modes:
 
 ### Normal Mode
 
-| Key                                      | Description                             |
-|------------------------------------------|-----------------------------------------|
-| <kbd>q</kbd>                             | Quit the editor                         |
-| <kbd>s</kbd>                             | Save file                               |
-| <kbd>h</kbd>                             | Move left one character                 |
-| <kbd>j</kbd>                             | Move down one line                      |
-| <kbd>k</kbd>                             | Move up one line                        |
-| <kbd>l</kbd>                             | Move right one character                |
-| <kbd>w</kbd>                             | Move word forward                       |
-| <kbd>b</kbd>                             | Move word backward                      |
-| <kbd>e</kbd>                             | Move to the end of the word             |
-| <kbd>0</kbd>                             | Move to the beginning of the line       |
-| <kbd>$</kbd>                             | Move to the end of the line             |
-| <kbd>{</kbd>                             | Move paragraph backward                 |
-| <kbd>}</kbd>                             | Move paragraph forward                  |
-| <kbd>x</kbd>                             | Delete character under the cursor       |
-| <kbd>DELETE</kdb>                        | Delete character under the cursor       |
-| <kbd>i</kbd>                             | Insert text before the cursor           |
-| <kbd>I</kbd>                             | Insert text at the begining of the line |
-| <kbd>a</kbd>                             | Append text after the cursor            |
-| <kbd>A</kbd>                             | Append text ath the end of the line     |
+| Key                                      | Description                                       |
+|------------------------------------------|---------------------------------------------------|
+| <kbd>q</kbd>                             | Quit the editor                                   |
+| <kbd>s</kbd>                             | Save file                                         |
+| <kbd>h</kbd>                             | Move left one character                           |
+| <kbd>j</kbd>                             | Move down one line                                |
+| <kbd>k</kbd>                             | Move up one line                                  |
+| <kbd>l</kbd>                             | Move right one character                          |
+| <kbd>w</kbd>                             | Move word forward                                 |
+| <kbd>b</kbd>                             | Move word backward                                |
+| <kbd>e</kbd>                             | Move to the end of the word                       |
+| <kbd>0</kbd>                             | Move to the beginning of the line                 |
+| <kbd>$</kbd>                             | Move to the end of the line                       |
+| <kbd>{</kbd>                             | Move paragraph backward                           |
+| <kbd>}</kbd>                             | Move paragraph forward                            |
+| <kbd>x</kbd>                             | Delete character under the cursor                 |
+| <kbd>DELETE</kdb>                        | Delete character under the cursor                 |
+| <kbd>i</kbd>                             | Insert text before the cursor                     |
+| <kbd>I</kbd>                             | Insert text at the begining of the line           |
+| <kbd>a</kbd>                             | Append text after the cursor                      |
+| <kbd>A</kbd>                             | Append text ath the end of the line               |
+| <kbd>o</kbd>                             | Begin a new line below the cursor and insert text |
+| <kbd>O</kbd>                             | Begin a new line above the cursor and insert text |
 
 ## Insert Mode
 

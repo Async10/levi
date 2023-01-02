@@ -54,14 +54,14 @@ class Editor:
     def cursor_line(self) -> int:
         return self._line_idx + 1
 
-    def switch_to_insert_mode(self, append_characters: bool = False):
+    def switch_to_insert_mode(self, append: bool = False):
         if self.mode == EditorMode.INSERT:
             return
 
         self._mode = EditorMode.INSERT
-        if append_characters:
+        if append:
             current_line = self._get_current_line()
-            if self._cursor + 1 < current_line.end:
+            if self._cursor < current_line.end:
                 self._cursor += 1
 
     def switch_to_normal_mode(self):
@@ -110,6 +110,16 @@ class Editor:
             self._line_idx = max(min(self._line_idx + 1, len(self._lines) - 1), 0)
             current_line = self._get_current_line()
             self._cursor = current_line.begin
+
+    def insert_newline_above(self):
+        self.move_to_beginning_of_line()
+        self.insert("\n")
+        self.move_up()
+
+    def insert_newline_below(self):
+        current_line = self._get_current_line()
+        self._cursor = current_line.end
+        self.insert("\n")
 
     def save(self) -> None:
         with open(self._file_path, "w", encoding=self._encoding) as fobj:
@@ -247,13 +257,11 @@ class Editor:
 
     def _correct_cursor_position(self) -> None:
         current_line = self._get_current_line()
-        if self._cursor > current_line.end:
-            self._cursor = current_line.end
-
+        self._cursor = min(self._cursor, current_line.end - 1)
         if len(current_line) > 1 and self._text[self._cursor] == "\n":
             self._cursor -= 1
 
-        self._cursor = max(min(self._cursor, len(self._text) - 1), 0)
+        self._cursor = max(self._cursor, 0)
 
     def _skip_whitespace_forward(self) -> int:
         idx = self._cursor + 1
@@ -413,7 +421,7 @@ class View:
         return self.terminal.read_key()
 
     def rerender(self, data: ViewData) -> None:
-        self.terminal.move_cursor(1, 1)
+        self.terminal.clear()
         lines = self._get_view_lines(data)
         lines.append(self._get_mode_line(data))
         assert len(lines) == self.terminal.get_size().lines
@@ -491,16 +499,22 @@ class Controller:
                     case "$": self.editor.move_to_end_of_line()
                     case "{": self.editor.move_paragraph_backward()
                     case "}": self.editor.move_paragraph_forward()
-                    case "a": self.editor.switch_to_insert_mode(append_characters=True)
+                    case "a": self.editor.switch_to_insert_mode(append=True)
                     case "A":
                         self.editor.move_to_end_of_line()
-                        self.editor.switch_to_insert_mode(append_characters=True)
+                        self.editor.switch_to_insert_mode(append=True)
                     case "i": self.editor.switch_to_insert_mode()
                     case "I":
                         self.editor.move_to_beginning_of_line()
                         self.editor.switch_to_insert_mode()
-                    case "s": self.editor.save()
+                    case "o":
+                        self.editor.insert_newline_below()
+                        self.editor.switch_to_insert_mode()
+                    case "O":
+                        self.editor.insert_newline_above()
+                        self.editor.switch_to_insert_mode()
                     case "x" | Terminal.DEL: self.editor.delete_character()
+                    case "s": self.editor.save()
                     case "q": return
                     case _: pass
             elif self.editor.mode == EditorMode.INSERT:
