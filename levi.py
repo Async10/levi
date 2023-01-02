@@ -167,6 +167,32 @@ class Editor:
         self._cursor = new_cursor
         self._correct_cursor_position()
 
+    def move_paragraph_forward(self) -> None:
+        nxt_cursor = self._cursor + 1
+        while nxt_cursor + 1 < len(self._text):
+            if self._text[nxt_cursor] == "\n":
+                self._line_idx += 1
+                if self._text[nxt_cursor-1] == "\n":
+                    break
+
+            nxt_cursor += 1
+
+        self._cursor = min(nxt_cursor, len(self._text) - 1)
+        self._correct_cursor_position()
+
+    def move_paragraph_backward(self) -> None:
+        nxt_cursor = self._cursor - 1
+        while nxt_cursor > 0:
+            if self._text[nxt_cursor] == "\n":
+                self._line_idx -= 1
+                if self._text[nxt_cursor+1] == "\n":
+                    break
+
+            nxt_cursor -= 1
+
+        self._cursor = max(nxt_cursor, 0)
+        self._correct_cursor_position()
+
     def _recompute_lines(self) -> None:
         if self._lines is None:
             self._lines = []
@@ -438,6 +464,8 @@ class Controller:
                     case "w": self.editor.move_word_forward()
                     case "b": self.editor.move_word_backward()
                     case "e": self.editor.move_to_end_of_word()
+                    case "{": self.editor.move_paragraph_backward()
+                    case "}": self.editor.move_paragraph_forward()
                     case "a": self.editor.switch_to_insert_mode(append_characters=True)
                     case "i": self.editor.switch_to_insert_mode()
                     case "s": self.editor.save()
