@@ -261,7 +261,7 @@ class Editor:
         if len(current_line) > 1 and self._text[self._cursor] == "\n":
             self._cursor -= 1
 
-        self._cursor = max(self._cursor, 0)
+        self._cursor = max(self._cursor, current_line.begin)
 
     def _skip_whitespace_forward(self) -> int:
         idx = self._cursor + 1
@@ -412,6 +412,8 @@ class ViewCursor:
 
 
 class View:
+    MIN_LINE_NUMBER_WIDTH = 5
+
     terminal: Terminal
 
     def __init__(self, terminal: Terminal) -> None:
@@ -422,40 +424,58 @@ class View:
 
     def rerender(self, data: ViewData) -> None:
         self.terminal.clear()
-        lines = self._get_view_lines(data)
+        line_number_width, lines = self._get_view_lines(data)
         lines.append(self._get_mode_line(data))
         assert len(lines) == self.terminal.get_size().lines
         self.terminal.write("".join(lines))
-        view_cursor = self._get_cursor(data)
+        view_cursor = self._get_cursor(data, line_number_width)
         self.terminal.move_cursor(
             view_cursor.line, view_cursor.column)
         self.terminal.flush()
 
-    def _get_cursor(self, data: ViewData) -> ViewCursor:
+    def _get_cursor(self, data: ViewData, line_number_width: int) -> ViewCursor:
+        assert line_number_width >= View.MIN_LINE_NUMBER_WIDTH
         max_view_lines = self.terminal.get_size().lines - 1
         view_cursor_line = data.cursor_line - max(data.cursor_line - max_view_lines, 0)
         columns = self.terminal.get_size().columns
-        view_cursor_column = data.cursor_column - max(data.cursor_column - columns, 0)
+        view_cursor_column = (line_number_width
+                              + data.cursor_column
+                              - max(data.cursor_column - columns, 0))
         return ViewCursor(view_cursor_line, view_cursor_column)
 
-    def _get_view_lines(self, data: ViewData) -> list[str]:
+    def _get_view_lines(self, data: ViewData) -> tuple[int, list[str]]:
         res: list[str] = []
         max_view_lines = self.terminal.get_size().lines - 1
         begin = max(data.cursor_line - max_view_lines, 0)
-        for line in list(data.lines)[begin:begin+max_view_lines]:
-            res.append(self._get_view_line(line, data.cursor_column))
+        end = begin + max_view_lines
+        lines = list(data.lines)
+        max_line_number = len(lines)
+        line_number_width = max(len(str(max_line_number)) + 2, View.MIN_LINE_NUMBER_WIDTH)
+        for line_number, line in enumerate(lines[begin:end], start = begin + 1):
+            formatted = self._format_line_number(
+                line_number, data.cursor_line, line_number_width)
+            res.append(self._get_view_line(line, data.cursor_column, formatted))
 
         empty_view_lines = max_view_lines - len(res)
         while empty_view_lines:
             res.append("~\n")
             empty_view_lines -= 1
 
-        return res
+        return (line_number_width, res)
 
-    def _get_view_line(self, line: str, cursor_column: int) -> str:
-        columns = self.terminal.get_size().columns
+    def _format_line_number(
+            self,
+            line_number: int,
+            cursor_line: int,
+            line_number_width: int) -> str:
+        padding = 1 if line_number != cursor_line else 2
+        return (str(line_number).rjust(line_number_width - padding, " ")
+                + " " * padding)
+
+    def _get_view_line(self, line: str, cursor_column: int, line_number: str) -> str:
+        columns = self.terminal.get_size().columns - len(line_number)
         begin = max(cursor_column - columns, 0)
-        view_line = line[begin:begin+columns]
+        view_line = line_number + line[begin:begin+columns]
         if view_line.endswith("\n"): return view_line
         return view_line + "\n"
 
@@ -569,7 +589,10 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
-# TODO: Line numbers
+# TODO: Delete line
+# TODO: Delete word
+# TODO: Change line
+# TODO: Change word
 # TODO: Make commands take a count
 # TODO: Undo edit / redo edit
 # TODO: Search / Replace
