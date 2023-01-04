@@ -100,6 +100,14 @@ class Editor:
         current_line = self._get_current_line()
         self._cursor = min(self._cursor, current_line.end)
 
+    def delete_line(self) -> None:
+        current_line = self._get_current_line()
+        self._text = self._text[:current_line.begin] + self._text[current_line.end:]
+        self._recompute_lines()
+        self._line_idx = min(self._line_idx, len(self._lines) - 1)
+        current_line = self._get_current_line()
+        self._cursor = current_line.begin
+
     def insert(self, text: str) -> None:
         text = text.replace("\t", " " * Editor.TAB_WIDTH)
         self._text = self._text[:self._cursor] + text + self._text[self._cursor:]
@@ -218,19 +226,15 @@ class Editor:
             self._lines = []
 
         self._lines.clear()
-        if self._text:
-            for idx, ch in enumerate(self._text):
-                is_newline = ch == "\n"
-                is_last_character = idx + 1 == len(self._text)
-                if is_newline or is_last_character:
-                    begin = 0 if not self._lines else self._lines[-1].end
-                    end = idx + 1
-                    self._lines.append(EditorLine(begin, end))
+        for idx, ch in enumerate(self._text):
+            is_newline = ch == "\n"
+            is_last_character = idx + 1 == len(self._text)
+            if is_newline or is_last_character:
+                begin = 0 if not self._lines else self._lines[-1].end
+                end = idx + 1
+                self._lines.append(EditorLine(begin, end))
 
-                if is_last_character and is_newline:
-                    begin = self._lines[-1].end
-                    self._lines.append(EditorLine(begin, begin))
-        else:
+        if not self._lines:
             self._lines.append(EditorLine(0, 0))
 
     def _go_to_line(self, line: int) -> None:
@@ -534,6 +538,10 @@ class Controller:
                         self.editor.insert_newline_above()
                         self.editor.switch_to_insert_mode()
                     case "x" | Terminal.DEL: self.editor.delete_character()
+                    case "d":
+                        cmd += self.view.get_key()
+                        if cmd == "dd":
+                            self.editor.delete_line()
                     case "s": self.editor.save()
                     case "q": return
                     case _: pass
@@ -589,7 +597,9 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
 
-# TODO: Delete line
+# TODO: Redraw line at center of screen
+# TODO: Move to first line of screen and redraw line at center of screen
+# TODO: Move to last line of screen and redraw line at center of screen
 # TODO: Delete word
 # TODO: Change line
 # TODO: Change word
